@@ -1,0 +1,11 @@
+﻿FROM python:3.10-slim
+ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 UVICORN_HOST=0.0.0.0 UVICORN_PORT=80
+RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 curl ca-certificates && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY requirements.txt /app/requirements.txt
+RUN python -m pip install --upgrade pip && \
+    pip install --no-cache-dir -r /app/requirements.txt && \
+    pip install --no-cache-dir torch==2.3.1+cu121 torchvision==0.18.1+cu121 torchaudio==2.3.1+cu121 --index-url https://download.pytorch.org/whl/cu121
+COPY . /app
+EXPOSE 80
+CMD ["python","inference.py"]

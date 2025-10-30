@@ -1,0 +1,9 @@
+﻿# Minimal shim to avoid broken tryon UNet implementation.
+# We reuse the stable class from unet_hacked_garmnet.
+
+try:
+    from src.unet_hacked_garmnet import UNet2DConditionModel as UNet2DConditionModel
+except Exception:
+    from unet_hacked_garmnet import UNet2DConditionModel as UNet2DConditionModel
+
+__all__ = ["UNet2DConditionModel"]

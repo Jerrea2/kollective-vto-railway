@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VTO Simple Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #camera {
+            width: 100%;
+            max-width: 400px;
+            border: 2px solid #333;
+            margin: 20px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .clothing-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .clothing-item {
+            border: 2px solid #ddd;
+            padding: 10px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .clothing-item:hover {
+            border-color: #007bff;
+        }
+        .clothing-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: contain;
+        }
+        #result {
+            margin: 20px 0;
+        }
+        #result img {
+            max-width: 100%;
+            border: 2px solid #28a745;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>Virtual Try-On (Working Version)</h1>
+    
+    <div>
+        <video id="camera" autoplay></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+    </div>
+    
+    <div>
+        <button onclick="startCamera()">Start Camera</button>
+        <button onclick="capture()">📸 Capture Photo</button>
+    </div>
+    
+    <div id="status"></div>
+    
+    <h3>Select Clothing:</h3>
+    <div class="clothing-grid">
+        <div class="clothing-item" onclick="tryOn('white-tshirt.png')">
+            <img src="http://localhost:3001/api/clothing-images/white-tshirt.png" alt="White T-Shirt">
+            <p>White T-Shirt</p>
+        </div>
+        <div class="clothing-item" onclick="tryOn('blue-shirt.png')">
+            <img src="http://localhost:3001/api/clothing-images/blue-shirt.png" alt="Blue Shirt">
+            <p>Blue Shirt</p>
+        </div>
+        <div class="clothing-item" onclick="tryOn('bomber-jacket.png')">
+            <img src="http://localhost:3001/api/clothing-images/bomber-jacket.png" alt="Bomber Jacket">
+            <p>Bomber Jacket</p>
+        </div>
+        <div class="clothing-item" onclick="tryOn('summer-dress.png')">
+            <img src="http://localhost:3001/api/clothing-images/summer-dress.png" alt="Summer Dress">
+            <p>Summer Dress</p>
+        </div>
+    </div>
+    
+    <div id="result"></div>
+
+    <script>
+        let capturedBlob = null;
+        const video = document.getElementById('camera');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                showStatus('Camera started!', 'success');
+            } catch (err) {
+                showStatus('Camera error: ' + err.message, 'error');
+            }
+        }
+        
+        function capture() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            canvas.toBlob(blob => {
+                capturedBlob = blob;
+                showStatus('Photo captured!', 'success');
+                
+                // Show captured image
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(blob);
+                img.style.maxWidth = '200px';
+                img.style.marginTop = '10px';
+                document.getElementById('status').appendChild(img);
+            }, 'image/jpeg');
+        }
+        
+        async function tryOn(clothingFile) {
+            if (!capturedBlob) {
+                showStatus('Please capture a photo first!', 'error');
+                return;
+            }
+            
+            showStatus('Processing...', 'success');
+            
+            const formData = new FormData();
+            formData.append('userPhoto', capturedBlob, 'photo.jpg');
+            formData.append('clothingItem', clothingFile);
+            
+            try {
+                // Direct fetch to avoid any issues
+                const response = await fetch('http://localhost:3001/api/try-on-2d', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Server error: ' + response.status);
+                }
+                
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                
+                // Show result
+                document.getElementById('result').innerHTML = `
+                    <h3>Result:</h3>
+                    <img src="${url}" alt="Try-on result">
+                    <br>
+                    <button onclick="download('${url}')">Download</button>
+                `;
+                
+                showStatus('Success!', 'success');
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+                console.error('Try-on error:', error);
+            }
+        }
+        
+        function download(url) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'tryon-result.jpg';
+            a.click();
+        }
+        
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.className = 'status ' + type;
+            status.textContent = message;
+        }
+        
+        // Auto-start camera
+        startCamera();
+    </script>
+</body>
+</html>

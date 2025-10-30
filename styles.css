@@ -1,0 +1,34 @@
+#vto-widget {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+#vto-camera {
+  width: 100%;
+  height: 400px;
+  background-color: #f0f0f0;
+  margin-bottom: 20px;
+}
+
+#vto-controls {
+  text-align: center;
+}
+
+#vto-capture-result {
+  margin-top: 20px;
+}
+
+#vto-captured-frame {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+#vto-download-btn {
+  margin-left: 10px;
+}

@@ -1,0 +1,17 @@
+﻿.git
+.vscode
+__pycache__/
+*.pt
+*.bin
+*.safetensors
+*.ckpt
+*.zip
+*.tar*
+*.log
+.DS_Store
+.env
+.venv/
+node_modules/
+data/
+weights/
+outputs/

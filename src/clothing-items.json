@@ -1,0 +1,27 @@
+[
+  {
+    "id": 1,
+    "name": "Black T-Shirt",
+    "image": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&q=80"
+  },
+  {
+    "id": 2,
+    "name": "Blue Jeans",
+    "image": "https://images.unsplash.com/photo-1542272604-787c3835535d?w=500&q=80"
+  },
+  {
+    "id": 3,
+    "name": "Summer Dress",
+    "image": "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=500&q=80"
+  },
+  {
+    "id": 4,
+    "name": "White Shirt",
+    "image": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=500&q=80"
+  },
+  {
+    "id": 5,
+    "name": "Denim Jacket",
+    "image": "https://images.unsplash.com/photo-1551537482-f2075a1d41f2?w=500&q=80"
+  }
+]

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Kollective VTO Widget</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <h1>Virtual Try-On</h1>
+    <div id="vto-container">
+      <div id="vto-widget">
+        <video id="vto-camera" autoplay></video>
+        <div id="vto-capture-result">
+          <img id="vto-captured-frame" alt="Captured Frame">
+        </div>
+        <div id="vto-controls">
+          <button id="vto-capture-btn">Capture</button>
+          <button id="test-tryon-btn" onclick="testTryOn()">Test Try-On</button>
+          <button id="vto-download-btn" disabled>Download</button>
+        </div>
+        <div id="vto-clothing-items"></div>
+      </div>
+    </div>
+    <script src="./src/index.js"></script>
+  </body>
+</html>

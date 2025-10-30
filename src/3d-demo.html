@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kollective VTO</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f3f3f3; margin: 0; padding: 20px; text-align: center; }
+    #video, #captured { width: 300px; border-radius: 12px; border: 2px solid #ccc; margin: 10px 0; }
+    .clothing-preview { display: flex; justify-content: center; flex-wrap: wrap; margin: 20px 0; }
+    .clothing-preview img { width: 80px; height: auto; margin: 10px; border: 2px solid transparent; border-radius: 8px; cursor: pointer; transition: border 0.2s; }
+    .clothing-preview img.selected { border-color: #007bff; }
+    button { padding: 10px 20px; margin: 10px; font-size: 16px; border-radius: 6px; cursor: pointer; }
+    #loading { display: none; font-style: italic; color: #666; }
+    #uploadInput { margin-top: 10px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Kollective Virtual Try-On</h1>
+  <video id="video" autoplay></video><br/>
+  <button id="captureBtn">Capture Photo</button>
+
+  <div>
+    <label for="uploadInput"><b>Or Upload a Photo:</b></label>
+    <input type="file" id="uploadInput" accept="image/*">
+  </div>
+
+  <canvas id="canvas" width="300" height="225" style="display:none;"></canvas>
+  <br/>
+  <img id="captured" alt="Selected Image" />
+
+  <h3>Select Clothing:</h3>
+  <div class="clothing-preview" id="clothingContainer"></div>
+
+  <div>
+    <button id="tryOnBtn">Try On</button>
+    <div id="loading">Processing try-on...</div>
+  </div>
+
+  <h3>Result:</h3>
+  <img id="result" alt="Try-On Result" style="max-width: 300px; border-radius: 12px;"/>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const captureBtn = document.getElementById('captureBtn');
+    const uploadInput = document.getElementById('uploadInput');
+    const captured = document.getElementById('captured');
+    const tryOnBtn = document.getElementById('tryOnBtn');
+    const result = document.getElementById('result');
+    const clothingContainer = document.getElementById('clothingContainer');
+    const loading = document.getElementById('loading');
+
+    let selectedClothingBlob = null;
+    let capturedImageBlob = null;
+
+    // ✅ RunPod FastAPI backend endpoint
+    const BACKEND_URL = "https://4swbjn0r9ovl1i-7860.proxy.runpod.net";
+
+    // Start webcam
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => video.srcObject = stream)
+      .catch(err => alert("Camera error: " + err));
+
+    // Capture photo (from webcam)
+    captureBtn.onclick = () => {
+      const context = canvas.getContext('2d');
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => {
+        capturedImageBlob = blob;
+        captured.src = URL.createObjectURL(blob);
+      }, 'image/jpeg');
+    };
+
+    // Upload photo (from file)
+    uploadInput.addEventListener('change', function() {
+      const file = uploadInput.files[0];
+      if (file) {
+        capturedImageBlob = file;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          captured.src = e.target.result;
+        }
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Add clothing option (Cloudinary PNG)
+    const CLOTHING_PNG_URL = "https://res.cloudinary.com/dnpe6srk9/image/upload/v1752545661/white-tshirt_n3zfvk.png";
+    fetch(CLOTHING_PNG_URL)
+      .then(res => res.blob())
+      .then(blob => {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(blob);
+        img.classList.add('selected');
+        img.onclick = () => {
+          selectedClothingBlob = blob;
+          document.querySelectorAll('.clothing-preview img').forEach(el => el.classList.remove('selected'));
+          img.classList.add('selected');
+        };
+        clothingContainer.appendChild(img);
+        selectedClothingBlob = blob;
+      })
+      .catch(() => {
+        clothingContainer.innerHTML = '<p>Clothing PNG failed to load.</p>';
+      });
+
+    // Try-on button logic
+    tryOnBtn.onclick = () => {
+      if (!capturedImageBlob || !selectedClothingBlob) {
+        alert('Please capture or upload a photo AND select clothing.');
+        return;
+      }
+      loading.style.display = 'block';
+      result.src = '';
+      const formData = new FormData();
+      formData.append('person_image', capturedImageBlob, 'user.jpg');
+      formData.append('clothing_image', selectedClothingBlob, 'clothing.png');
+      fetch(`${BACKEND_URL}/tryon`, {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Try-on failed.');
+        return res.blob();
+      })
+      .then(blob => {
+        result.src = URL.createObjectURL(blob);
+      })
+      .catch(err => {
+        alert('Try-on error: ' + err.message);
+      })
+      .finally(() => {
+        loading.style.display = 'none';
+      });
+    };
+  </script>
+</body>
+</html>
