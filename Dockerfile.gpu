@@ -31,3 +31,7 @@ EXPOSE 80
 CMD ["python3", "inference.py"]
 
 # ci: touch 2025-11-07T14:52:45.2844511-05:00
+# runtime fix: avoid shell entrypoint (exit 127)
+EXPOSE 3000
+ENV PORT=3000
+CMD ["python3","-m","uvicorn","inference:app","--host","0.0.0.0","--port","3000"]
