@@ -1,17 +1,40 @@
-ï»¿.git
-.vscode
-__pycache__/
-*.pt
-*.bin
-*.safetensors
-*.ckpt
-*.zip
-*.tar*
-*.log
+# VCS / IDE
+.git
+.gitignore
+.vscode/
 .DS_Store
-.env
-.venv/
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Node / bundler caches
 node_modules/
-data/
+api-server/.parcel-cache/
+
+# Large local outputs / scratch
+api-server/uploads/
+*.ipynb_checkpoints/
+*.zip
+*.tar
+*.7z
+
+# Model/weight blobs (we fetch at runtime)
+models/
 weights/
-outputs/
+**/*.safetensors
+**/*.ckpt
+**/*.pt
+
+# Images & media we don’t need in the image
+*.png
+*.jpg
+*.jpeg
+*.mp4
+
+# Keep only the demo assets used by the API
+!static/clothing-images/**
+!Whitetee.png
+!testpic.jpg
