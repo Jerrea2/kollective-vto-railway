@@ -1,27 +1,12 @@
-﻿# keep source; ignore junk/caches only
-
-# VCS
+﻿# keep app code and requirements; ignore heavy/temp stuff only
 .git
-.gitignore
-
-# Python caches
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
 *.log
-
-# Build artifacts
-dist/
-build/
-*.egg-info/
-
-# Node (if present)
 node_modules/
-
-# Hugging Face / model caches (we fetch at runtime)
-.huggingface/
+vendor/IDM-VTON/.git
+workspace/
 models/
-models_cache/
 weights/
-workspace/weights/
+.api-server/.parcel-cache/
