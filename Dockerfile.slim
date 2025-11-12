@@ -1,0 +1,31 @@
+# Slim, stable build — heavy ML deps install at runtime in entrypoint.sh
+FROM python:3.10-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    HF_HOME=/opt/hf \
+    UVICORN_HOST=0.0.0.0 \
+    UVICORN_PORT=7860
+
+# Minimal OS deps only (keep it small)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 libglib2.0-0 ca-certificates curl git && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install only your small, stable Python deps here (no torch/diffusers at build)
+COPY requirements.slim.txt /app/requirements.slim.txt
+RUN python -m pip install --upgrade pip && \
+    pip install --no-cache-dir -r /app/requirements.slim.txt
+
+# Bring in your app code (including entrypoint.sh and inference.py)
+COPY . /app
+
+# Make sure the entrypoint is executable (you already ran dos2unix locally)
+RUN chmod +x /app/entrypoint.sh
+
+EXPOSE 7860
+
+# Hand off to entrypoint (it will install torch/diffusers at runtime if needed)
+CMD ["/bin/bash","/app/entrypoint.sh"]

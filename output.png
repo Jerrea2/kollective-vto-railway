@@ -1,0 +1,16 @@
+HTTP/1.1 100 Continue
+
+HTTP/1.1 502 Bad Gateway
+Date: Sun, 26 Oct 2025 18:10:25 GMT
+Content-Type: text/plain; charset=UTF-8
+Content-Length: 15
+Connection: keep-alive
+Set-Cookie: __cflb=0H28w1baQdA73mxKrL7ZTeZxxk4P3aQgnvYVZtZ8EnH; SameSite=None; Secure; path=/; expires=Sun, 26-Oct-25 18:40:25 GMT; HttpOnly
+X-Frame-Options: SAMEORIGIN
+Referrer-Policy: same-origin
+Cache-Control: private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+Expires: Thu, 01 Jan 1970 00:00:01 GMT
+Server: cloudflare
+CF-RAY: 994be901bbb47ca6-EWR
+
+error code: 502

@@ -1,0 +1,131 @@
+﻿import io, os, sys, glob
+from functools import lru_cache
+from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from PIL import Image
+import torch
+from diffusers import DDPMScheduler, AutoencoderKL
+from transformers import AutoTokenizer, CLIPImageProcessor, CLIPVisionModelWithProjection, CLIPTextModelWithProjection, CLIPTextModel
+from diffusers.models import UNet2DConditionModel
+from tryon_pipeline import StableDiffusionXLInpaintPipeline as TryonPipeline
+
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], allow_credentials=True,
+    allow_methods=["*"], allow_headers=["*"],
+)
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DTYPE = torch.float16 if torch.cuda.is_available() else torch.float32
+HF_CACHE = os.path.expanduser(r"~\.cache\huggingface\hub\models--yisol--IDM-VTON\snapshots")
+
+def _resolve_snapshot():
+    explicit = os.environ.get("IDM_VTON_SNAPSHOT", "")
+    if explicit:
+        p = os.path.join(HF_CACHE, explicit)
+        if os.path.isfile(os.path.join(p, "unet", "config.json")) and os.path.isfile(os.path.join(p, "unet_encoder", "config.json")):
+            return p
+    candidates = sorted(glob.glob(os.path.join(HF_CACHE, "*")), key=os.path.getmtime, reverse=True)
+    for c in candidates:
+        if os.path.isfile(os.path.join(c, "unet", "config.json")) and os.path.isfile(os.path.join(c, "unet_encoder", "config.json")):
+            return c
+    raise RuntimeError("No valid local IDM-VTON snapshot found under: " + HF_CACHE)
+
+LOCAL_SNAPSHOT = _resolve_snapshot()
+print(f"[BOOT] Using local snapshot: {LOCAL_SNAPSHOT}")
+print("[BOOT] Listing key files:")
+for sub in ["unet","unet_encoder","vae","scheduler","tokenizer","tokenizer_2","text_encoder","text_encoder_2","image_encoder"]:
+    p = os.path.join(LOCAL_SNAPSHOT, sub)
+    print("   ", sub, "->", "OK" if os.path.isdir(p) else "MISSING")
+
+@lru_cache(maxsize=1)
+def get_pipe() -> TryonPipeline:
+    lf = dict(local_files_only=True)
+    print(f"[BOOT] Initializing pipeline on {DEVICE} ({DTYPE})")
+    sched = DDPMScheduler.from_pretrained(LOCAL_SNAPSHOT, subfolder="scheduler", **lf)
+    vae   = AutoencoderKL.from_pretrained(LOCAL_SNAPSHOT, subfolder="vae", torch_dtype=DTYPE, use_safetensors=True, **lf)
+
+    unet = UNet2DConditionModel.from_pretrained(
+        LOCAL_SNAPSHOT, subfolder="unet", torch_dtype=DTYPE,
+        trust_remote_code=True, use_safetensors=True, local_files_only=True
+    )
+    cfg_enc = UNet2DConditionModel.load_config(LOCAL_SNAPSHOT, subfolder="unet_encoder", local_files_only=True)
+unet_encoder = UNet2DConditionModel.from_config(cfg_enc, torch_dtype=DTYPE)
+
+    image_encoder = CLIPVisionModelWithProjection.from_pretrained(LOCAL_SNAPSHOT, subfolder="image_encoder", torch_dtype=DTYPE, **lf)
+    te1 = CLIPTextModel.from_pretrained(LOCAL_SNAPSHOT, subfolder="text_encoder", torch_dtype=DTYPE, **lf)
+    te2 = CLIPTextModelWithProjection.from_pretrained(LOCAL_SNAPSHOT, subfolder="text_encoder_2", torch_dtype=DTYPE, **lf)
+    tok1 = AutoTokenizer.from_pretrained(LOCAL_SNAPSHOT, subfolder="tokenizer", use_fast=False, **lf)
+    tok2 = AutoTokenizer.from_pretrained(LOCAL_SNAPSHOT, subfolder="tokenizer_2", use_fast=False, **lf)
+
+    pipe = TryonPipeline.from_pretrained(
+        LOCAL_SNAPSHOT,
+        unet=unet, vae=vae, scheduler=sched,
+        feature_extractor=CLIPImageProcessor(),
+        text_encoder=te1, text_encoder_2=te2,
+        tokenizer=tok1, tokenizer_2=tok2,
+        image_encoder=image_encoder, unet_encoder=unet_encoder,
+        torch_dtype=DTYPE, local_files_only=True,
+    ).to(DEVICE)
+
+    if DEVICE == "cpu":
+        try:
+            torch.set_num_threads(max(1, (os.cpu_count() or 2)//2))
+        except Exception:
+            pass
+    print("[BOOT] Pipeline ready.")
+    return pipe
+
+@app.get("/health")
+def health():
+    loaded = get_pipe.cache_info().currsize > 0
+    return {"status":"ok","device":DEVICE,"dtype":str(DTYPE),"loaded":loaded}
+
+@app.post("/tryon")
+async def tryon(person_image: UploadFile = File(...), clothing_image: UploadFile = File(...)):
+    try:
+        p_bytes = await person_image.read()
+        c_bytes = await clothing_image.read()
+        person = Image.open(io.BytesIO(p_bytes)).convert("RGB")
+        cloth  = Image.open(io.BytesIO(c_bytes)).convert("RGBA")
+    except Exception as e:
+        return JSONResponse({"error": f"Invalid input images: {e}"}, status_code=400)
+
+    max_size = 256 if DEVICE == "cpu" else 384
+    person.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+    cloth.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+    w, h = person.size
+    pose = person.copy().resize((w, h), Image.Resampling.LANCZOS)
+    mask = Image.new("L", (w, h), 128)
+
+    try:
+        pipe = get_pipe()
+        with torch.no_grad():
+            out = pipe(
+                prompt="photo of a person wearing clothing",
+                image=person, cloth=cloth, mask_image=mask, pose_img=pose,
+                height=h, width=w, guidance_scale=2.0,
+                num_inference_steps=4 if DEVICE == "cpu" else 8,
+            )[0]
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        print("==== INFERENCE FAILED ====\n", tb)
+        return JSONResponse({"error": str(e), "traceback": tb}, status_code=500)
+
+    buf = io.BytesIO(); out.save(buf, format="PNG"); buf.seek(0)
+    return StreamingResponse(buf, media_type="image/png")
+
+@app.get("/")
+def root():
+    return {"status": "IDM-VTON FastAPI backend is running."}
+
+if __name__ == "__main__":
+    import uvicorn
+    sys.path.insert(0, os.path.join(os.getcwd(), "src"))
+    uvicorn.run("inference:app", host="0.0.0.0", port=7860, reload=False)
+
+
+

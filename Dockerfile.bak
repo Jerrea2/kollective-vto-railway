@@ -1,0 +1,38 @@
+FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    HF_HOME=/models \
+    HUGGINGFACE_HUB_CACHE=/models \
+    UVICORN_HOST=0.0.0.0 \
+    UVICORN_PORT=7860
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 libglib2.0-0 ca-certificates git curl && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Reuse cached deps if unchanged
+COPY requirements.txt /app/requirements.txt
+RUN python -m pip install --upgrade pip && \
+    pip install --no-cache-dir -r /app/requirements.txt && \
+    pip install --no-cache-dir \
+      diffusers==0.29.2 \
+      transformers==4.41.2 \
+      accelerate==0.31.0 \
+      safetensors==0.4.3 \
+      huggingface_hub==0.24.6 \
+      xformers==0.0.27.post2
+
+# App code only
+COPY . /app
+
+# Code-only clone of IDM-VTON (no LFS weights at build)
+RUN git clone --depth 1 https://github.com/yisol/IDM-VTON /app/vendor/IDM-VTON && \
+    rm -rf /app/vendor/IDM-VTON/.git
+
+EXPOSE 7860
+
+# Startup will handle (resumable) model download to /models on first run
+CMD ["/bin/bash","-lc","python /app/startup.py && uvicorn inference:app --host 0.0.0.0 --port 7860 --workers 1"]

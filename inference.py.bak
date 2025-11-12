@@ -1,0 +1,124 @@
+﻿import os, io
+from typing import Optional
+from fastapi import FastAPI, File, UploadFile, Response
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from PIL import Image, UnidentifiedImageError
+import torch
+
+APP_NAME = "kollective-vto"
+
+app = FastAPI(title=APP_NAME)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], allow_credentials=True,
+    allow_methods=["*"], allow_headers=["*"],
+)
+
+# ---- Config ----
+MODEL_PATH = os.environ.get("MODEL_PATH", "/models/IDM-VTON")
+ENABLE_ML  = os.environ.get("ENABLE_ML", "1") == "1"
+STRICT_ML  = os.environ.get("STRICT_ML", "1") == "1"
+MAX_UPLOAD_MB = int(os.environ.get("MAX_UPLOAD_MB", "20"))
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DTYPE  = torch.float16 if torch.cuda.is_available() else torch.float32
+
+# Try to import IDM-VTON pipeline symbol
+TryonPipeline = None
+try:
+    from tryon_pipeline import StableDiffusionXLInpaintPipeline as TryonPipeline
+except Exception:
+    try:
+        from tryon_pipeline import TryonPipeline as TryonPipeline
+    except Exception:
+        TryonPipeline = None
+
+pipe = None
+loaded = False
+last_error: Optional[str] = None
+
+def _assert_models_exist():
+    need = [os.path.join(MODEL_PATH, "unet"),
+            os.path.join(MODEL_PATH, "image_encoder")]
+    for p in need:
+        if not os.path.exists(p):
+            raise FileNotFoundError(f"Missing required path: {p}")
+
+def _load_pipeline():
+    global pipe, loaded, last_error
+    if pipe is not None:
+        return
+    if not ENABLE_ML:
+        last_error = "ENABLE_ML=0"
+        raise RuntimeError(last_error)
+    if TryonPipeline is None:
+        last_error = "IDM-VTON tryon_pipeline not importable"
+        raise RuntimeError(last_error)
+
+    _assert_models_exist()
+    try:
+        p = TryonPipeline.from_pretrained(
+            MODEL_PATH,
+            torch_dtype=DTYPE,
+            local_files_only=True,  # never download
+        )
+        if DEVICE == "cuda":
+            p = p.to("cuda")
+            if hasattr(p, "enable_attention_slicing"):
+                p.enable_attention_slicing()
+        loaded = True
+        pipe = p
+    except Exception as e:
+        last_error = f"{type(e).__name__}: {e}"
+        raise
+
+@app.get("/")
+def root():
+    return {"ok": True, "service": APP_NAME, "status": "ready"}
+
+@app.get("/ping")
+def ping():
+    return {"ok": True}
+
+@app.get("/health")
+def health():
+    return {"ready": True, "loaded": loaded, "error": last_error, "max_upload_mb": MAX_UPLOAD_MB}
+
+@app.post("/tryon")
+async def tryon(person_image: UploadFile = File(...),
+                clothing_image: UploadFile = File(...)):
+    global pipe, last_error
+    # Read uploads (basic checks)
+    p_bytes = await person_image.read()
+    c_bytes = await clothing_image.read()
+    if not p_bytes or not c_bytes:
+        return JSONResponse(status_code=400, content={"error":"Empty upload(s)"})
+
+    try:
+        if pipe is None:
+            _load_pipeline()
+        if not loaded or pipe is None:
+            raise RuntimeError(last_error or "Pipeline not loaded")
+
+        p_rgb = Image.open(io.BytesIO(p_bytes)).convert("RGB")
+        c_rgba = Image.open(io.BytesIO(c_bytes)).convert("RGBA")
+
+        with torch.inference_mode():
+            result = pipe(person_image=p_rgb, clothing_image=c_rgba)
+
+        out_img = result.images[0] if hasattr(result, "images") else result
+        if out_img is None:
+            raise RuntimeError("Pipeline returned no image")
+
+        buf = io.BytesIO()
+        out_img.save(buf, format="PNG")
+        buf.seek(0)
+        return Response(content=buf.getvalue(), media_type="image/png")
+    except UnidentifiedImageError:
+        last_error = "Invalid image format"
+        return JSONResponse(status_code=400, content={"error": last_error})
+    except Exception as e:
+        last_error = f"{type(e).__name__}: {e}"
+        # STRICT ML: never send sticker or blank PNG
+        return JSONResponse(status_code=500, content={"error": f"IDM-VTON generation failed: {last_error}"})

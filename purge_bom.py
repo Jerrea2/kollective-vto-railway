@@ -1,0 +1,11 @@
+﻿from pathlib import Path
+p = Path("tryon_pipeline.py")
+b = p.read_bytes()
+removed_bytes = b.count(b"\xEF\xBB\xBF")
+b = b.replace(b"\xEF\xBB\xBF", b"")
+text = b.decode("utf-8", errors="replace")
+removed_chars = text.count("\ufeff") + text.count("ï»¿")
+text = text.replace("\ufeff","").replace("ï»¿","")
+p.write_text(text, encoding="utf-8")
+print(f"OK: BOM bytes removed={removed_bytes}, BOM chars removed={removed_chars}")
+print("HEAD:", repr(text.splitlines()[:3]))
