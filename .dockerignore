@@ -1,40 +1,27 @@
-# VCS / IDE
+ï»¿# keep source; ignore junk/caches only
+
+# VCS
 .git
 .gitignore
-.vscode/
-.DS_Store
 
 # Python caches
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.log
 
-# Node / bundler caches
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Node (if present)
 node_modules/
-api-server/.parcel-cache/
 
-# Large local outputs / scratch
-api-server/uploads/
-*.ipynb_checkpoints/
-*.zip
-*.tar
-*.7z
-
-# Model/weight blobs (we fetch at runtime)
+# Hugging Face / model caches (we fetch at runtime)
+.huggingface/
 models/
+models_cache/
 weights/
-**/*.safetensors
-**/*.ckpt
-**/*.pt
-
-# Images & media we don’t need in the image
-*.png
-*.jpg
-*.jpeg
-*.mp4
-
-# Keep only the demo assets used by the API
-!static/clothing-images/**
-!Whitetee.png
-!testpic.jpg
+workspace/weights/
