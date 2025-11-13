@@ -30,4 +30,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD curl -fsS http://127.0.0.1:8000/health || exit 1
 
 # Download/verify weights at first run, then start API with your exact flags on port 80
-CMD ["/bin/bash","-lc","python /app/startup.py && uvicorn inference:app --host 0.0.0.0 --port 8000 --log-level debug --proxy-headers --forwarded-allow-ips=\"*\" --workers 1"]
+CMD ["/bin/bash","-lc","python /app/startup.py && uvicorn src.Kollective-vto2.inference:app --host 0.0.0.0 --port 8000 --log-level debug --proxy-headers --forwarded-allow-ips=\"*\" --workers 1"]
