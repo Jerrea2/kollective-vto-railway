@@ -1,0 +1,18 @@
+# --- Core ML stack ---
+torch                      # install with CUDA/CPU index-url (see note below)
+torchvision                # must match torch build
+diffusers==0.27.2
+transformers==4.41.1
+accelerate>=0.28.0
+safetensors>=0.4.3
+sentencepiece>=0.1.99
+huggingface_hub>=0.23.0
+
+# --- Serving & IO ---
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
+Pillow>=10.2.0
+
+# --- Optional (present in your codebase) ---
+cloudinary>=1.39.0
