@@ -1,12 +1,5 @@
-﻿import uvicorn
+﻿# startup.py
+# Make this a no-op so the real backend in src.Kollective-vto2.inference
+# is started by the CMD in the Dockerfile.
 
-# Force uvicorn to run YOUR real backend (no more stub)
-uvicorn.run(
-    'src.Kollective-vto2.inference:app',
-    host='0.0.0.0',
-    port=80,
-    log_level='debug',
-    proxy_headers=True,
-    forwarded_allow_ips='*',
-    workers=1
-)
+print('startup: no-op, exiting so main uvicorn can start.')
