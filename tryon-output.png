@@ -1,0 +1,13 @@
+HTTP/1.1 100 Continue
+
+HTTP/1.1 404 Not Found
+Date: Thu, 20 Nov 2025 19:51:07 GMT
+Content-Type: application/json
+Content-Length: 22
+Connection: keep-alive
+CF-RAY: 9a1a7ad55f31be83-EWR
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+cf-cache-status: DYNAMIC
+Server: cloudflare
+
+{"detail":"Not Found"}
