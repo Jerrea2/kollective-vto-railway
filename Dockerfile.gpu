@@ -1,11 +1,5 @@
-# ---------------------------------------------------------
-# Base Image
-# ---------------------------------------------------------
 FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
 
-# ---------------------------------------------------------
-# System Dependencies
-# ---------------------------------------------------------
 RUN apt-get update && apt-get install -y \
     git \
     wget \
@@ -16,37 +10,30 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# ---------------------------------------------------------
-# Working Directory
-# ---------------------------------------------------------
 WORKDIR /app
 
-# ---------------------------------------------------------
-# Copy application code
-# ---------------------------------------------------------
 COPY . /app
 
-# ---------------------------------------------------------
-# Install Python dependencies
-# ---------------------------------------------------------
 RUN pip3 install --upgrade pip
 RUN pip3 install -r /app/requirements.txt --no-cache-dir
 
-# ---------------------------------------------------------
-# BAKE IDM-VTON WEIGHTS INTO IMAGE
-# These weights come from your repo under models/vendor-IDM-VTON
-# ---------------------------------------------------------
-COPY models/vendor-IDM-VTON /models/vendor-IDM-VTON
+RUN mkdir -p /models/vendor-IDM-VTON/unet
+RUN mkdir -p /models/vendor-IDM-VTON/unet_encoder
+RUN mkdir -p /models/vendor-IDM-VTON/vae
+
+COPY models/vendor-IDM-VTON/unet/diffusion_pytorch_model.safetensors \
+     /models/vendor-IDM-VTON/unet/
+
+COPY models/vendor-IDM-VTON/unet_encoder/diffusion_pytorch_model.safetensors \
+     /models/vendor-IDM-VTON/unet_encoder/
+
+COPY models/vendor-IDM-VTON/vae/diffusion_pytorch_model.safetensors \
+     /models/vendor-IDM-VTON/vae/
+
+COPY models/vendor-IDM-VTON/ /models/vendor-IDM-VTON/
+
 ENV IDM_VTON_MODEL_DIR=/models/vendor-IDM-VTON
 
-# ---------------------------------------------------------
-# Expose port for RunPod inference server
-# ---------------------------------------------------------
 EXPOSE 8000
 
-# ---------------------------------------------------------
-# Entry Point
-# YOUR inference server is always started with worker.py
-# ---------------------------------------------------------
 CMD ["python3", "worker.py"]
-
