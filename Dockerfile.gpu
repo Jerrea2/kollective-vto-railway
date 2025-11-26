@@ -1,37 +1,52 @@
-# ----------------------------------------------
-# Kollective VTO GPU Image — Stable Boot Fix
-# ----------------------------------------------
-FROM nvidia/cuda:12.1.0-base-ubuntu22.04
+# ---------------------------------------------------------
+# Base Image
+# ---------------------------------------------------------
+FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
 
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y python3 python3-pip git ffmpeg libsm6 libxext6 && \
-    rm -rf /var/lib/apt/lists/*
+# ---------------------------------------------------------
+# System Dependencies
+# ---------------------------------------------------------
+RUN apt-get update && apt-get install -y \
+    git \
+    wget \
+    curl \
+    python3 \
+    python3-pip \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 
+# ---------------------------------------------------------
+# Working Directory
+# ---------------------------------------------------------
 WORKDIR /app
 
-# copy code
+# ---------------------------------------------------------
+# Copy application code
+# ---------------------------------------------------------
 COPY . /app
 
-# install deps
-RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+# ---------------------------------------------------------
+# Install Python dependencies
+# ---------------------------------------------------------
+RUN pip3 install --upgrade pip
+RUN pip3 install -r /app/requirements.txt --no-cache-dir
 
-# skip HF cache migration stalls
-ENV TRANSFORMERS_NO_ADVISORY_WARNINGS=1 \
-    TRANSFORMERS_CACHE="/root/.cache/huggingface"
+# ---------------------------------------------------------
+# BAKE IDM-VTON WEIGHTS INTO IMAGE
+# These weights come from your repo under models/vendor-IDM-VTON
+# ---------------------------------------------------------
+COPY models/vendor-IDM-VTON /models/vendor-IDM-VTON
+ENV IDM_VTON_MODEL_DIR=/models/vendor-IDM-VTON
 
-# preload cache to prevent migration block
-RUN python3 - <<'EOF'
-import transformers
-print("Preloading model cache to prevent startup stall")
-EOF
+# ---------------------------------------------------------
+# Expose port for RunPod inference server
+# ---------------------------------------------------------
+EXPOSE 8000
 
-# expose and launch
-EXPOSE 80
-CMD ["python3", "inference.py"]
+# ---------------------------------------------------------
+# Entry Point
+# YOUR inference server is always started with worker.py
+# ---------------------------------------------------------
+CMD ["python3", "worker.py"]
 
-# ci: touch 2025-11-07T14:52:45.2844511-05:00
-# runtime fix: avoid shell entrypoint (exit 127)
-EXPOSE 3000
-ENV PORT=3000
-CMD ["python3","-m","uvicorn","inference:app","--host","0.0.0.0","--port","3000"]
