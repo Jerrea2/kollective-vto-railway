@@ -12,3 +12,11 @@ weights/
 checkpoints/
 outputs/
 logs/
+# ---- IDM-VTON model weights (keep only chunks) ----
+# Ignore the giant raw safetensor weights
+models/vendor-IDM-VTON/**/diffusion_pytorch_model.safetensors
+
+# Keep the 7-Zip chunk archives so they go into the image
+!models/vendor-IDM-VTON/**/unet_chunks.7z*
+!models/vendor-IDM-VTON/**/unetenc_chunks.7z*
+!models/vendor-IDM-VTON/**/vae_chunks.7z*

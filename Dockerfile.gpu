@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     libgl1 \
     libglib2.0-0 \
+    p7zip-full \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -21,16 +22,20 @@ RUN mkdir -p /models/vendor-IDM-VTON/unet
 RUN mkdir -p /models/vendor-IDM-VTON/unet_encoder
 RUN mkdir -p /models/vendor-IDM-VTON/vae
 
-COPY models/vendor-IDM-VTON/unet/diffusion_pytorch_model.safetensors \
-     /models/vendor-IDM-VTON/unet/
-
-COPY models/vendor-IDM-VTON/unet_encoder/diffusion_pytorch_model.safetensors \
-     /models/vendor-IDM-VTON/unet_encoder/
-
-COPY models/vendor-IDM-VTON/vae/diffusion_pytorch_model.safetensors \
-     /models/vendor-IDM-VTON/vae/
-
+# Copy all IDM-VTON model files (raw safetensors are excluded by .dockerignore)
 COPY models/vendor-IDM-VTON/ /models/vendor-IDM-VTON/
+
+# Reconstruct UNet weights from chunks
+RUN 7z x /models/vendor-IDM-VTON/unet/unet_chunks.7z.001 -o/models/vendor-IDM-VTON/unet/ -y && \
+    rm /models/vendor-IDM-VTON/unet/unet_chunks.7z.*
+
+# Reconstruct UNet encoder weights from chunks
+RUN 7z x /models/vendor-IDM-VTON/unet_encoder/unetenc_chunks.7z.001 -o/models/vendor-IDM-VTON/unet_encoder/ -y && \
+    rm /models/vendor-IDM-VTON/unet_encoder/unetenc_chunks.7z.*
+
+# Reconstruct VAE weights from chunks
+RUN 7z x /models/vendor-IDM-VTON/vae/vae_chunks.7z.001 -o/models/vendor-IDM-VTON/vae/ -y && \
+    rm /models/vendor-IDM-VTON/vae/vae_chunks.7z.*
 
 ENV IDM_VTON_MODEL_DIR=/models/vendor-IDM-VTON
 
