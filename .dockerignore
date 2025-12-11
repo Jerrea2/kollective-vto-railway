@@ -7,16 +7,15 @@ __pycache__
 .venv
 .vscode
 node_modules
-models/
-weights/
-checkpoints/
-outputs/
-logs/
-# ---- IDM-VTON model weights (keep only chunks) ----
-# Ignore the giant raw safetensor weights
+
+# Allow models to be included
+# (DO NOT EXCLUDE THE WHOLE MODELS DIRECTORY!)
+# Ignore only giant safetensors if they appear – NOT folders
+
+# If vendor-IDM-VTON ever contains a safetensors file, ignore it:
 models/vendor-IDM-VTON/**/diffusion_pytorch_model.safetensors
 
-# Keep the 7-Zip chunk archives so they go into the image
+# Keep chunk archives
 !models/vendor-IDM-VTON/**/unet_chunks.7z*
 !models/vendor-IDM-VTON/**/unetenc_chunks.7z*
 !models/vendor-IDM-VTON/**/vae_chunks.7z*
