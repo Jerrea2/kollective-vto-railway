@@ -1,36 +1,34 @@
-﻿# --- snip imports above ---
-
-from diffusers import UNet2DConditionModel
+﻿from diffusers import UNet2DConditionModel, AutoencoderKL
+from transformers import CLIPTextModel, CLIPTokenizer
+from huggingface_hub import hf_hub_download
 import torch
+import os
 
-# ... existing code ...
+DTYPE = torch.float16
+PRETRAINED_MODEL_NAME = "yisol/IDM-VTON"
 
-def _lazy_load_pipeline():
-    global pipe
+def load_unet():
+    print("[VTO] Loading UNet config manually")
 
-    if pipe is not None:
-        return pipe
-
-    print("[VTO] Lazy-loading IDM-VTON pipeline")
-
-    unet = UNet2DConditionModel.from_pretrained(
+    config = UNet2DConditionModel.load_config(
         PRETRAINED_MODEL_NAME,
-        subfolder="unet",
-        torch_dtype=_DTYPE,
-        ignore_mismatched_sizes=True
+        subfolder="unet"
     )
 
-    # 🔧 HARD FIX FOR IDM-VTON / DIFFUSERS COMPATIBILITY
-    if hasattr(unet.config, "encoder_hid_dim_type"):
-        print("[VTO] Forcing encoder_hid_dim_type=None for IDM-VTON compatibility")
-        unet.config.encoder_hid_dim_type = None
+    # FORCE compatibility
+    if "encoder_hid_dim_type" in config:
+        print("[VTO] Removing encoder_hid_dim_type from config")
+        config["encoder_hid_dim_type"] = None
 
-    pipe = StableDiffusionInpaintPipeline.from_pretrained(
-        PRETRAINED_MODEL_NAME,
-        unet=unet,
-        torch_dtype=_DTYPE
-    ).to("cuda")
+    unet = UNet2DConditionModel.from_config(config)
+    unet.load_state_dict(
+        UNet2DConditionModel.from_pretrained(
+            PRETRAINED_MODEL_NAME,
+            subfolder="unet",
+            torch_dtype=DTYPE
+        ).state_dict()
+    )
 
-    return pipe
+    return unet.to("cuda")
 
-# --- rest of file unchanged ---
+# rest of your inference code continues unchanged
