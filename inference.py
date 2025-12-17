@@ -1,34 +1,36 @@
-import os
+﻿# --- snip imports above ---
+
+from diffusers import UNet2DConditionModel
 import torch
-from diffusers import StableDiffusionInpaintPipeline
-from PIL import Image
 
-MODEL_DIR = os.environ.get("IDM_VTON_MODEL_DIR", "/models/vendor-IDM-VTON")
+# ... existing code ...
 
-print(f"[inference] Loading IDM-VTON model from: {MODEL_DIR}")
+def _lazy_load_pipeline():
+    global pipe
 
-pipe = StableDiffusionInpaintPipeline.from_pretrained(
-    MODEL_DIR,
-    torch_dtype=torch.float16,
-    safety_checker=None
-).to("cuda")
+    if pipe is not None:
+        return pipe
 
-pipe.enable_xformers_memory_efficient_attention()
+    print("[VTO] Lazy-loading IDM-VTON pipeline")
 
-def run_inference(person_img_path: str, cloth_img_path: str, output_path: str):
-    print("[inference] Loading input images...")
-    person = Image.open(person_img_path).convert("RGB")
-    cloth = Image.open(cloth_img_path).convert("RGBA")
+    unet = UNet2DConditionModel.from_pretrained(
+        PRETRAINED_MODEL_NAME,
+        subfolder="unet",
+        torch_dtype=_DTYPE,
+        ignore_mismatched_sizes=True
+    )
 
-    print("[inference] Running diffusion...")
-    result = pipe(
-        prompt="a person wearing the given clothing item, photorealistic",
-        image=person,
-        mask_image=cloth,
-        guidance_scale=7.5,
-        num_inference_steps=30,
-    ).images[0]
+    # 🔧 HARD FIX FOR IDM-VTON / DIFFUSERS COMPATIBILITY
+    if hasattr(unet.config, "encoder_hid_dim_type"):
+        print("[VTO] Forcing encoder_hid_dim_type=None for IDM-VTON compatibility")
+        unet.config.encoder_hid_dim_type = None
 
-    print("[inference] Saving result...")
-    result.save(output_path)
-    return output_path
+    pipe = StableDiffusionInpaintPipeline.from_pretrained(
+        PRETRAINED_MODEL_NAME,
+        unet=unet,
+        torch_dtype=_DTYPE
+    ).to("cuda")
+
+    return pipe
+
+# --- rest of file unchanged ---
