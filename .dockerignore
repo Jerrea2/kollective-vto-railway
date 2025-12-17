@@ -1,21 +1,41 @@
-﻿.git
-__pycache__
+﻿# =========================
+# Git / metadata
+# =========================
+.git
+.gitignore
+
+# =========================
+# Python caches
+# =========================
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
-.env
-.venv
-.vscode
-node_modules
 
-# Allow models to be included
-# (DO NOT EXCLUDE THE WHOLE MODELS DIRECTORY!)
-# Ignore only giant safetensors if they appear – NOT folders
+# =========================
+# Editor junk
+# =========================
+.vscode/
+.idea/
 
-# If vendor-IDM-VTON ever contains a safetensors file, ignore it:
-models/vendor-IDM-VTON/**/diffusion_pytorch_model.safetensors
+# =========================
+# Backups & temp files
+# =========================
+*.backup*
+*.bak
+*.old
+*.tmp
 
-# Keep chunk archives
-!models/vendor-IDM-VTON/**/unet_chunks.7z*
-!models/vendor-IDM-VTON/**/unetenc_chunks.7z*
-!models/vendor-IDM-VTON/**/vae_chunks.7z*
+# =========================
+# 🚨 CRITICAL: prevent duplicate inference paths
+# =========================
+src/
+
+# =========================
+# Local artifacts
+# =========================
+docker_build_log.txt
+tryon_output.png
+context.json
+repo_local.txt
+chunk-idm-vton.ps1
