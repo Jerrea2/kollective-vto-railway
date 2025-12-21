@@ -24,12 +24,13 @@ RUN python -m pip install --upgrade pip && \
     pip install --no-cache-dir -r /app/requirements.txt
 
 # -----------------------------
-# 🚨 CACHE BUST (FORCES COPY)
+# 🔥 HARD CACHE BREAK (REAL ONE)
+# This file NEVER exists before build
 # -----------------------------
-ARG CACHEBUST=2025-12-21-ID-GATE-FIX
+RUN date > /app/__cache_bust__
 
 # -----------------------------
-# App code
+# App code (FORCED COPY)
 # -----------------------------
 COPY . /app
 
@@ -40,7 +41,7 @@ RUN git clone --depth 1 https://github.com/yisol/IDM-VTON /app/vendor/IDM-VTON &
     rm -rf /app/vendor/IDM-VTON/.git
 
 # -----------------------------
-# Server
+# Server (EXPLICIT)
 # -----------------------------
 EXPOSE 8000
 CMD ["uvicorn", "src.inference:app", "--host", "0.0.0.0", "--port", "8000"]
