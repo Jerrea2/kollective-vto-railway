@@ -3,12 +3,12 @@
 # -----------------------------
 # System deps
 # -----------------------------
-RUN apt-get update && apt-get install -y --no-install-recommends `
-    libgl1 `
-    libglib2.0-0 `
-    ca-certificates `
-    git `
-    curl `
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    ca-certificates \
+    git \
+    curl \
  && rm -rf /var/lib/apt/lists/*
 
 # -----------------------------
@@ -20,24 +20,23 @@ WORKDIR /app
 # Python deps
 # -----------------------------
 COPY requirements.txt /app/requirements.txt
-RUN python -m pip install --upgrade pip && `
+RUN python -m pip install --upgrade pip && \
     pip install --no-cache-dir -r /app/requirements.txt
 
 # -----------------------------
-# 🚨 CACHE BUST (NON-NEGOTIABLE)
-# Change this value ANY time code must update
+# 🚨 CACHE BUST (FORCES COPY)
 # -----------------------------
-ARG CACHEBUST=2025-12-21T-ID-GATE
+ARG CACHEBUST=2025-12-21-ID-GATE-FIX
 
 # -----------------------------
-# App code (FORCES COPY)
+# App code
 # -----------------------------
 COPY . /app
 
 # -----------------------------
-# Vendor model repo
+# Vendor repo
 # -----------------------------
-RUN git clone --depth 1 https://github.com/yisol/IDM-VTON /app/vendor/IDM-VTON && `
+RUN git clone --depth 1 https://github.com/yisol/IDM-VTON /app/vendor/IDM-VTON && \
     rm -rf /app/vendor/IDM-VTON/.git
 
 # -----------------------------
