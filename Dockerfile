@@ -27,4 +27,5 @@ RUN test -f /app/src/inference.py && ls -la /app/src
 EXPOSE 8000
 
 # Force uvicorn to load from /app/src
-CMD ["uvicorn", "inference:app", "--app-dir", "/app/src", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python3","-u","/app/src/inference.py"]
+
