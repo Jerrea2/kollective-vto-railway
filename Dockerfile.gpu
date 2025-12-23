@@ -1,22 +1,30 @@
 ﻿FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
 
-WORKDIR /app
-
-# Install deps
-RUN apt-get update && apt-get install -y python3 python3-pip git && apt-get clean
-
-COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
-
-# -----------------------------------------------------
-# CORRECT COPY — MATCHES YOUR ACTUAL FOLDER STRUCTURE
-# -----------------------------------------------------
-COPY models/models-IDM-VTON /app/models-IDM-VTON
-
-# Copy source code
-COPY src/ /app/src/
-COPY inference.py /app/inference.py
-
+ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 
-CMD ["python3", "inference.py"]
+WORKDIR /app
+
+# System deps
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    git \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python deps (cacheable)
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# 🔴 CRITICAL: copy ONLY src into image
+COPY src /app/src
+
+# 🔴 HARD FAIL if inference.py is missing
+RUN test -f /app/src/inference.py && ls -la /app/src
+
+EXPOSE 8000
+
+# 🔴 Force uvicorn to load from /app/src
+CMD ["uvicorn", "inference:app", "--app-dir", "/app/src", "--host", "0.0.0.0", "--port", "8000"]
