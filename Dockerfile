@@ -1,47 +1,30 @@
-﻿FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
+﻿FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
 
-# -----------------------------
-# System deps
-# -----------------------------
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1 \
-    libglib2.0-0 \
-    ca-certificates \
-    git \
-    curl \
- && rm -rf /var/lib/apt/lists/*
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
 
-# -----------------------------
-# Workdir
-# -----------------------------
 WORKDIR /app
 
-# -----------------------------
-# Python deps
-# -----------------------------
+# System deps
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    git \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python deps (cacheable)
 COPY requirements.txt /app/requirements.txt
-RUN python -m pip install --upgrade pip && \
-    pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# -----------------------------
-# 🔥 HARD CACHE BREAK (REAL ONE)
-# This file NEVER exists before build
-# -----------------------------
-RUN date > /app/__cache_bust__
+# CRITICAL: copy ONLY src into image
+COPY src /app/src
 
-# -----------------------------
-# App code (FORCED COPY)
-# -----------------------------
-COPY . /app
+# HARD FAIL if inference.py is missing
+RUN test -f /app/src/inference.py && ls -la /app/src
 
-# -----------------------------
-# Vendor repo
-# -----------------------------
-RUN git clone --depth 1 https://github.com/yisol/IDM-VTON /app/vendor/IDM-VTON && \
-    rm -rf /app/vendor/IDM-VTON/.git
-
-# -----------------------------
-# Server (EXPLICIT)
-# -----------------------------
 EXPOSE 8000
-CMD ["uvicorn", "src.inference:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# Force uvicorn to load from /app/src
+CMD ["uvicorn", "inference:app", "--app-dir", "/app/src", "--host", "0.0.0.0", "--port", "8000"]
