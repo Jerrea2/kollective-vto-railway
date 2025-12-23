@@ -27,11 +27,6 @@ __pycache__/
 *.tmp
 
 # =========================
-# 🚨 CRITICAL: prevent duplicate inference paths
-# =========================
-src/
-
-# =========================
 # Local artifacts
 # =========================
 docker_build_log.txt
