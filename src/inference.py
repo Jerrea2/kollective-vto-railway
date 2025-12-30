@@ -1,13 +1,9 @@
-﻿import os
-import sys
-print("======================================")
-print("[IDENTITY] inference.py LOADED")
-print("[IDENTITY] __file__ =", __file__)
-print("[IDENTITY] cwd =", os.getcwd())
-print("[IDENTITY] sys.path =", sys.path)
-print("======================================")
+﻿import sys
+print("🚨🚨🚨 IDENTITY GATE HIT — src/inference.py IMPORTED 🚨🚨🚨")
+sys.stdout.flush()
 
 from fastapi import FastAPI
+
 app = FastAPI()
 
 @app.get("/health")
