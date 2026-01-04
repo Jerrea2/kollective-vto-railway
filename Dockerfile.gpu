@@ -1,6 +1,8 @@
 ARG CACHE_BUST=20251230140300
 FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
 
+ENV PYTHONPATH=/app/src
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 
@@ -29,4 +31,5 @@ EXPOSE 8000
 
 # ?? Force uvicorn to load from /app/src
 CMD ["uvicorn", "inference:app", "--app-dir", "/app/src", "--host", "0.0.0.0", "--port", "8000"]
+
 
