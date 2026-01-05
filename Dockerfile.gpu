@@ -1,35 +1,13 @@
-ARG CACHE_BUST=20251230140300
-FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
+FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
 
-ENV PYTHONPATH=/app/src
-
-ENV DEBIAN_FRONTEND=noninteractive
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONUNBUFFERED=1 `
+    PIP_NO_CACHE_DIR=1 `
+    PYTHONPATH=/app
 
 WORKDIR /app
 
-# System deps
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    git \
-    curl \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# Python deps (cacheable)
 COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN python -m pip install --upgrade pip && `
+    pip install --no-cache-dir -r /app/requirements.txt
 
-# ?? CRITICAL: copy ONLY src into image
 COPY src /app/src
-
-# ?? HARD FAIL if inference.py is missing
-RUN test -f /app/src/inference.py && ls -la /app/src
-
-EXPOSE 8000
-
-# ?? Force uvicorn to load from /app/src
-CMD ["uvicorn", "inference:app", "--app-dir", "/app/src", "--host", "0.0.0.0", "--port", "8000"]
-
-
