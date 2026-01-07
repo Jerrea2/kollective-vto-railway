@@ -1,36 +1,18 @@
-﻿# =========================
-# Git / metadata
-# =========================
-.git
-.gitignore
-
-# =========================
-# Python caches
-# =========================
+﻿models/
+vendor/
+node_modules/
+.venv/
+.parcel-cache/
+dist/
+ckpt/
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# =========================
-# Editor junk
-# =========================
-.vscode/
-.idea/
-
-# =========================
-# Backups & temp files
-# =========================
-*.backup*
-*.bak
-*.old
-*.tmp
-
-# =========================
-# Local artifacts
-# =========================
-docker_build_log.txt
-tryon_output.png
-context.json
-repo_local.txt
-chunk-idm-vton.ps1
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.gif
+*.webp
+*.tiff
+*.tif
+openapi.json
+server.log
