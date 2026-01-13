@@ -6,6 +6,7 @@ on:
     paths:
       - "Dockerfile.gpu"
       - "requirements.txt"
+      - "startup.py"
       - "src/inference.py"
       - ".github/workflows/**"
   workflow_dispatch: {}
