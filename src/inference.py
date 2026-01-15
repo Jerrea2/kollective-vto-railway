@@ -1,7 +1,5 @@
 # ============================================
 # RUNPOD PODS ENTRY SEAM (ASGI IMPORT)
-# If you don't see the print below in logs,
-# then this module is NOT the one being imported.
 # ============================================
 import os, sys, time
 
@@ -12,6 +10,9 @@ print(f"DEBUG: CWD={os.getcwd()}", flush=True)
 print(f"DEBUG: SYS_PATH_HEAD={sys.path[:5]}", flush=True)
 
 from fastapi import FastAPI
+
+# ? CRITICAL FIX: package-relative import
+from .tryon_pipeline import StableDiffusionXLInpaintPipeline as TryonPipeline
 
 # IMPORTANT: RunPod/uvicorn expects a module-level `app` object.
 app = FastAPI()
