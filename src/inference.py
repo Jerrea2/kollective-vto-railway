@@ -1,9 +1,19 @@
+# ============================================
+# RUNPOD ASGI ENTRYPOINT
+# ============================================
 import os, sys, time
+from fastapi import FastAPI
 
-print("?????? HARD IDENTITY PROBE ??????", flush=True)
+print("?? IDENTITY GATE HIT — src.inference IMPORTED", flush=True)
 print(f"FILE={__file__}", flush=True)
 print(f"CWD={os.getcwd()}", flush=True)
-print(f"SYS_PATH={sys.path}", flush=True)
-print(f"TIME={time.time()}", flush=True)
+print(f"SYS_PATH={sys.path[:5]}", flush=True)
 
-raise RuntimeError("STOP — THIS IS THE REAL inference.py")
+# ? THIS IS THE FIX
+from .tryon_pipeline import StableDiffusionXLInpaintPipeline as TryonPipeline
+
+app = FastAPI()
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
