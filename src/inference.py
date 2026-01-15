@@ -1,19 +1,30 @@
-# ============================================
-# RUNPOD ASGI ENTRYPOINT
-# ============================================
-import os, sys, time
+# =========================================================
+# RUNPOD ASGI ENTRYPOINT — HARD LOCKED
+# =========================================================
+
+import os
+import sys
+import time
 from fastapi import FastAPI
 
-print("?? IDENTITY GATE HIT — src.inference IMPORTED", flush=True)
+# -------- IDENTITY GATE (MUST PRINT) --------
+print("???? IDENTITY GATE HIT — src.inference IMPORTED ????", flush=True)
 print(f"FILE={__file__}", flush=True)
 print(f"CWD={os.getcwd()}", flush=True)
-print(f"SYS_PATH={sys.path[:5]}", flush=True)
+print(f"SYS_PATH_HEAD={sys.path[:5]}", flush=True)
 
-# ? THIS IS THE FIX
+# -------- CRITICAL RELATIVE IMPORT (THIS IS THE FIX) --------
 from .tryon_pipeline import StableDiffusionXLInpaintPipeline as TryonPipeline
 
+# -------- APP --------
 app = FastAPI()
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "stamp": time.time(),
+        "file": __file__,
+        "cwd": os.getcwd(),
+        "sys_path_head": sys.path[:5],
+    }
