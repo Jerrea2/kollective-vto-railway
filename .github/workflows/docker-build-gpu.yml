@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   build:
@@ -28,4 +27,4 @@ jobs:
           push: true
           tags: |
             jerrea2/kollective-vto:demo-v1
-            jerrea2/kollective-vto:demo-v1-${{ github.sha }}
+            jerrea2/kollective-vto:${{ github.sha }}
