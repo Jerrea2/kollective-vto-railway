@@ -1,21 +1,16 @@
-name: Build & Push GPU Image
+﻿name: Build and Push GPU Image
 
 on:
   push:
-    branches: [ "main" ]
-    paths:
-      - "Dockerfile.gpu"
-      - "requirements.txt"
-      - "startup.py"
-      - "src/inference.py"
-      - ".github/workflows/**"
-  workflow_dispatch: {}
+    branches:
+      - main
 
 jobs:
-  build-and-push:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
@@ -27,10 +22,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push (latest)
-        uses: docker/build-push-action@v6
+      - name: Build and push image (latest + versioned tags)
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile.gpu
           push: true
-          tags: jerrea2/kollective-vto:latest
+          tags: |
+            jerrea2/kollective-vto:latest
+            jerrea2/kollective-vto:demo-v1
+            jerrea2/kollective-vto:demo-v1-${{ github.sha }}
