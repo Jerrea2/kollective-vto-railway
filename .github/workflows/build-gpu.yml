@@ -1,34 +1,29 @@
-﻿name: Build and Push GPU Image
+name: Build and Push GPU Image
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
+      - name: Docker login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push image (latest + versioned tags)
+      - name: Build and push GPU image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile.gpu
           push: true
           tags: |
-            jerrea2/kollective-vto:latest
-            jerrea2/kollective-vto:demo-v1
-            jerrea2/kollective-vto:demo-v1-${{ github.sha }}
+            jhuff574/kollective-vto:demo-v1
+            jhuff574/kollective-vto:demo-v1-${{ github.sha }}
