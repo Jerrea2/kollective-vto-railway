@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 # -------------------------------
 # COPY MODEL (CANONICAL)
 # -------------------------------
-COPY models/models-IDM-VTON /app/model
+# REMOVED: invalid IDM-VTON COPY (volume-based now)
 
 # -------------------------------
 # COPY SOURCE
