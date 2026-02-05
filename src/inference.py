@@ -1,39 +1,52 @@
-import os
+﻿import os
 import torch
 from fastapi import FastAPI
-from pydantic import BaseModel
-from fastapi.responses import FileResponse
 from diffusers import StableDiffusionXLPipeline
 
-print("???? IDENTITY GATE HIT - src.inference IMPORTED ????", flush=True)
-print("FILE=/app/src/inference.py", flush=True)
-print("CWD=", os.getcwd(), flush=True)
-print("SYS_PATH_HEAD=", __import__("sys").path[:6], flush=True)
+# ============================
+# IDENTITY GATE (MUST PRINT ONCE)
+# ============================
+print("🚨🚨 IDENTITY GATE HIT — src.inference IMPORTED 🚨🚨", flush=True)
+print(f"FILE={__file__}", flush=True)
+print(f"CWD={os.getcwd()}", flush=True)
+print(f"SYS_PATH_HEAD={os.sys.path[:3]}", flush=True)
 
+# ============================
+# APP INIT
+# ============================
 app = FastAPI()
 
-print("Loading SDXL from Hugging Face (NOT /app/model)", flush=True)
+# ============================
+# SDXL LOCALITY (DETERMINISTIC)
+# ============================
+SDXL_PATH = "/workspace/models/sdxl"
+
+print(f"Loading SDXL from local path: {SDXL_PATH}", flush=True)
 
 pipe = StableDiffusionXLPipeline.from_pretrained(
-    "stabilityai/stable-diffusion-xl-base-1.0",
-    torch_dtype=torch.float16
+    SDXL_PATH,
+    torch_dtype=torch.float16,
+    local_files_only=True,
 ).to("cuda")
 
-class InferRequest(BaseModel):
-    prompt: str
+print("SDXL loaded successfully on CUDA", flush=True)
 
+# ============================
+# HEALTH CHECK
+# ============================
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "sdxl_path": SDXL_PATH,
+        "cuda_available": torch.cuda.is_available(),
+        "device_count": torch.cuda.device_count(),
+    }
 
+# ============================
+# PLACEHOLDER INFERENCE ROUTE
+# (DO NOT CALL UNTIL STEP 2 PASS)
+# ============================
 @app.post("/infer")
-def infer(req: InferRequest):
-    image = pipe(
-        prompt=req.prompt,
-        num_inference_steps=25,
-        guidance_scale=7.5,
-    ).images[0]
-
-    out_path = "/app/output.png"
-    image.save(out_path)
-    return FileResponse(out_path, media_type="image/png")
+def infer():
+    return {"error": "Inference disabled until SDXL locality gate passes"}
