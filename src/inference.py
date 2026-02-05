@@ -1,43 +1,22 @@
-# ============================================================
-# RUNPOD ASGI ENTRYPOINT — HARD LOCKED
-# SDXL BASE PIPELINE (NO INPAINT)
-# ============================================================
-
 import os
-import sys
-import time
-
 import torch
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from fastapi.responses import FileResponse
 from diffusers import StableDiffusionXLPipeline
 
-# -------------------------
-# Identity Gate (DO NOT MOVE)
-# -------------------------
-STAMP = os.environ.get("BUILD_ID", "NO_BUILD_ID")
+print("???? IDENTITY GATE HIT - src.inference IMPORTED ????", flush=True)
+print("FILE=/app/src/inference.py", flush=True)
+print("CWD=", os.getcwd(), flush=True)
+print("SYS_PATH_HEAD=", __import__("sys").path[:6], flush=True)
 
-print(
-    f"???? IDENTITY GATE HIT - src.inference IMPORTED - STAMP={STAMP} - T={time.time()} ????",
-    flush=True,
-)
-print(f"FILE={__file__}", flush=True)
-print(f"CWD={os.getcwd()}", flush=True)
-print(f"SYS_PATH_HEAD={sys.path[:8]}", flush=True)
-
-# -------------------------
-# App
-# -------------------------
 app = FastAPI()
 
-MODEL_PATH = os.environ.get("PRETRAINED_MODEL_PATH", "/app/model")
-print(f"Loading SDXL from {MODEL_PATH}", flush=True)
+print("Loading SDXL from Hugging Face (NOT /app/model)", flush=True)
 
 pipe = StableDiffusionXLPipeline.from_pretrained(
-    MODEL_PATH,
-    torch_dtype=torch.float16,
-    local_files_only=True,
+    "stabilityai/stable-diffusion-xl-base-1.0",
+    torch_dtype=torch.float16
 ).to("cuda")
 
 class InferRequest(BaseModel):
@@ -45,7 +24,7 @@ class InferRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "model_path": MODEL_PATH}
+    return {"status": "ok"}
 
 @app.post("/infer")
 def infer(req: InferRequest):
@@ -57,5 +36,4 @@ def infer(req: InferRequest):
 
     out_path = "/app/output.png"
     image.save(out_path)
-
     return FileResponse(out_path, media_type="image/png")
