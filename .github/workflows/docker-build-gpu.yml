@@ -26,3 +26,5 @@ jobs:
           tags: |
             jerrea2/kollective-vto:demo-v1
             jerrea2/kollective-vto:demo-v1-${{ github.sha }}
+          secrets: |
+            HF_TOKEN=${{ secrets.HF_TOKEN }}
