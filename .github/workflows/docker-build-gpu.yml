@@ -1,11 +1,12 @@
-name: Build and Push GPU Image
+name: Build and Push Images
 
 on:
   push:
     branches: [ "main" ]
 
 jobs:
-  build:
+
+  build-model:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,7 +18,31 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push GPU image
+      - name: Build and push SDXL model image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.sdxl
+          push: true
+          tags: |
+            jerrea2/kollective-vto:sdxl-base
+          secrets: |
+            HF_TOKEN=${{ secrets.HF_TOKEN }}
+
+  build-runtime:
+    runs-on: ubuntu-latest
+    needs: build-model
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push runtime image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -26,5 +51,3 @@ jobs:
           tags: |
             jerrea2/kollective-vto:demo-v1
             jerrea2/kollective-vto:demo-v1-${{ github.sha }}
-          secrets: |
-            HF_TOKEN=${{ secrets.HF_TOKEN }}

@@ -1,39 +1,13 @@
 # syntax=docker/dockerfile:1.6
 
-########################################
-# STAGE 1 — Bake SDXL (Build-Time Only)
-########################################
-FROM python:3.10-slim AS sdxl_bake
+################################################
+# STAGE 1 — SDXL Base Image (Prebuilt)
+################################################
+FROM jerrea2/kollective-vto:sdxl-base AS model
 
-ARG SDXL_REPO=stabilityai/stable-diffusion-xl-base-1.0
-ARG SDXL_REVISION=main
-ARG SDXL_DIR=/models/sdxl
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN pip install --no-cache-dir huggingface_hub==0.25.2
-
-# Create bake script inside image
-RUN echo 'import os' > /bake_sdxl.py && \
-    echo 'from huggingface_hub import snapshot_download' >> /bake_sdxl.py && \
-    echo 'repo_id = os.environ["SDXL_REPO"]' >> /bake_sdxl.py && \
-    echo 'revision = os.environ["SDXL_REVISION"]' >> /bake_sdxl.py && \
-    echo 'local_dir = os.environ["SDXL_DIR"]' >> /bake_sdxl.py && \
-    echo 'token = os.environ["HF_TOKEN"]' >> /bake_sdxl.py && \
-    echo 'snapshot_download(repo_id=repo_id, revision=revision, local_dir=local_dir, local_dir_use_symlinks=False, token=token)' >> /bake_sdxl.py && \
-    echo 'print("SDXL baked into:", local_dir)' >> /bake_sdxl.py
-
-RUN --mount=type=secret,id=HF_TOKEN \
-    export HF_TOKEN=$(cat /run/secrets/HF_TOKEN) && \
-    python /bake_sdxl.py
-
-RUN test -f ${SDXL_DIR}/model_index.json
-
-########################################
+################################################
 # STAGE 2 — GPU Runtime
-########################################
+################################################
 FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -50,8 +24,10 @@ RUN ln -sf /usr/bin/python3.10 /usr/bin/python
 
 WORKDIR /app
 
-COPY --from=sdxl_bake /models/sdxl /models/sdxl
+# Copy baked SDXL from model image
+COPY --from=model /models/sdxl /models/sdxl
 
+# Hard offline flags
 ENV HF_HUB_OFFLINE=1
 ENV TRANSFORMERS_OFFLINE=1
 ENV HF_DATASETS_OFFLINE=1
