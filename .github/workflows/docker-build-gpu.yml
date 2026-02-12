@@ -8,9 +8,29 @@ jobs:
 
   build-model:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
+
+      - name: Show disk before cleanup
+        run: |
+          df -h
+          docker system df || true
+
+      - name: Free disk space on runner
+        run: |
+          set -eux
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /usr/local/lib/android || true
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf /usr/local/.ghcup || true
+          sudo rm -rf /usr/share/swift || true
+          sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+          sudo rm -rf /opt/hostedtoolcache/go || true
+          sudo rm -rf /opt/hostedtoolcache/Java_* || true
+          sudo apt-get clean || true
+          sudo rm -rf /var/lib/apt/lists/* || true
+          docker system prune -af || true
+          df -h
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -32,7 +52,6 @@ jobs:
   build-runtime:
     runs-on: ubuntu-latest
     needs: build-model
-
     steps:
       - uses: actions/checkout@v4
 
