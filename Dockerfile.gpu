@@ -1,47 +1,5 @@
 # syntax=docker/dockerfile:1.6
 
-############################################
-# STAGE 1 — Bake SDXL (Silent)
-############################################
-FROM python:3.10-slim AS sdxl_bake
-
-ARG SDXL_REPO=stabilityai/stable-diffusion-xl-base-1.0
-ARG SDXL_REVISION=main
-ARG SDXL_DIR=/models/sdxl
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN pip install --no-cache-dir huggingface_hub==0.25.2
-
-# Disable ALL progress + reduce concurrency
-ENV HF_HUB_DISABLE_PROGRESS_BARS=1
-ENV HF_HUB_ENABLE_HF_TRANSFER=0
-
-RUN mkdir -p 
-
-RUN --mount=type=secret,id=HF_TOKEN \
-    export HF_TOKEN=\ && \
-    python - <<EOF
-import os
-from huggingface_hub import snapshot_download
-
-snapshot_download(
-    repo_id=os.environ["SDXL_REPO"],
-    revision=os.environ["SDXL_REVISION"],
-    local_dir=os.environ["SDXL_DIR"],
-    token=os.environ["HF_TOKEN"],
-    local_dir_use_symlinks=False,
-    max_workers=1
-)
-EOF
-
-RUN test -f /model_index.json
-
-############################################
-# STAGE 2 — GPU Runtime
-############################################
 FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -58,20 +16,13 @@ RUN ln -sf /usr/bin/python3.10 /usr/bin/python
 
 WORKDIR /app
 
-COPY --from=sdxl_bake /models/sdxl /models/sdxl
-
-ENV HF_HUB_OFFLINE=1
-ENV TRANSFORMERS_OFFLINE=1
-ENV HF_DATASETS_OFFLINE=1
-ENV HF_HUB_DISABLE_TELEMETRY=1
-
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY src /app/src
 
 ENV PYTHONUNBUFFERED=1
-ENV PRETRAINED_MODEL_PATH=/models/sdxl
+ENV PRETRAINED_MODEL_PATH=/workspace/models/sdxl
 
 EXPOSE 8000
 
