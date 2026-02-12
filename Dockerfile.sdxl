@@ -1,31 +1,3 @@
-# syntax=docker/dockerfile:1.6
+﻿# syntax=docker/dockerfile:1.6
 
-FROM python:3.10-slim
-
-ARG SDXL_REPO=stabilityai/stable-diffusion-xl-base-1.0
-ARG SDXL_REVISION=main
-ARG SDXL_DIR=/models/sdxl
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN pip install --no-cache-dir huggingface_hub==0.25.2
-
-RUN mkdir -p ${SDXL_DIR}
-
-RUN --mount=type=secret,id=HF_TOKEN \
-    export HF_TOKEN=$(cat /run/secrets/HF_TOKEN) && \
-    python - <<EOF
-import os
-from huggingface_hub import snapshot_download
-
-snapshot_download(
-    repo_id=os.environ["SDXL_REPO"],
-    revision=os.environ["SDXL_REVISION"],
-    local_dir=os.environ["SDXL_DIR"],
-    token=os.environ["HF_TOKEN"]
-)
-EOF
-
-RUN test -f ${SDXL_DIR}/model_index.json
+FROM scratch
