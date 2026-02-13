@@ -1,52 +1,51 @@
-﻿import os
+import os
 import torch
 from fastapi import FastAPI
 from diffusers import StableDiffusionXLPipeline
 
-# ============================
-# IDENTITY GATE (MUST PRINT ONCE)
-# ============================
-print("🚨🚨 IDENTITY GATE HIT — src.inference IMPORTED 🚨🚨", flush=True)
-print(f"FILE={__file__}", flush=True)
-print(f"CWD={os.getcwd()}", flush=True)
-print(f"SYS_PATH_HEAD={os.sys.path[:3]}", flush=True)
+print(" IDENTITY GATE HIT  src.inference IMPORTED ")
+print("FILE=", __file__)
+print("CWD=", os.getcwd())
+print("SYS_PATH_HEAD=", __import__("sys").path[:3])
 
-# ============================
-# APP INIT
-# ============================
 app = FastAPI()
 
-# ============================
-# SDXL LOCALITY (DETERMINISTIC)
-# ============================
-SDXL_PATH = "/workspace/models/sdxl"
+MODEL_PATH = "/workspace/models/sdxl"
+MODEL_ID = "stabilityai/stable-diffusion-xl-base-1.0"
 
-print(f"Loading SDXL from local path: {SDXL_PATH}", flush=True)
+os.makedirs(MODEL_PATH, exist_ok=True)
 
-pipe = StableDiffusionXLPipeline.from_pretrained(
-    SDXL_PATH,
-    torch_dtype=torch.float16,
-    local_files_only=True,
-).to("cuda")
+def load_pipeline():
+    model_index = os.path.join(MODEL_PATH, "model_index.json")
 
-print("SDXL loaded successfully on CUDA", flush=True)
+    if not os.path.exists(model_index):
+        print(" SDXL not found locally.")
+        print("Downloading SDXL into:", MODEL_PATH)
 
-# ============================
-# HEALTH CHECK
-# ============================
+        pipe = StableDiffusionXLPipeline.from_pretrained(
+            MODEL_ID,
+            torch_dtype=torch.float16,
+            variant="fp16"
+        )
+
+        pipe.save_pretrained(MODEL_PATH)
+        print(" SDXL downloaded and saved.")
+
+    else:
+        print(" Loading SDXL from local path:", MODEL_PATH)
+        pipe = StableDiffusionXLPipeline.from_pretrained(
+            MODEL_PATH,
+            torch_dtype=torch.float16
+        )
+
+    pipe.to("cuda")
+    return pipe
+
+
+print("Initializing SDXL pipeline...")
+pipe = load_pipeline()
+print("SDXL READY.")
+
 @app.get("/health")
 def health():
-    return {
-        "status": "ok",
-        "sdxl_path": SDXL_PATH,
-        "cuda_available": torch.cuda.is_available(),
-        "device_count": torch.cuda.device_count(),
-    }
-
-# ============================
-# PLACEHOLDER INFERENCE ROUTE
-# (DO NOT CALL UNTIL STEP 2 PASS)
-# ============================
-@app.post("/infer")
-def infer():
-    return {"error": "Inference disabled until SDXL locality gate passes"}
+    return {"status": "ok"}
